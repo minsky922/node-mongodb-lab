@@ -3,6 +3,7 @@ const app = express()
 const { MongoClient, ObjectId } = require('mongodb')
 
 const methodOverride = require('method-override')
+// const connectDB = require('./database.js')
 
 require('dotenv').config()
 app.use(methodOverride('_method'))
@@ -14,12 +15,13 @@ app.set('view engine', 'ejs')
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-
+let connectDB = require('./database.js') //database.js 파일 경로
 let db;
-const url = process.env.DB_URL;
-new MongoClient(url).connect().then((client) => {
+// const url = process.env.DB_URL;
+// new MongoClient(url).connect().then((client) => {
+connectDB.then((client) => {
     console.log('DB연결성공')
-    db = client.db('forum')
+    db = client.db('forum');
     app.listen(process.env.PORT, () => {
         console.log('http://localhost:8080 에서 서버 실행중')
     })
@@ -36,8 +38,14 @@ function 미들웨어함수(요청, 응답, next) {
     next()
 }
 
+// app.use(미들웨어함수) //이거 밑에 있는 모든 api는 미들웨어함수 적용됨
+
 // 미들웨어함수에 (요청,응답) 담아서 자동으로 먼저 실행됨
-app.get('/', 미들웨어함수, (요청, 응답) => {
+// app.get('/', 미들웨어함수, (요청, 응답) => {
+//     응답.sendFile(__dirname + '/index.html')
+// })
+
+app.get('/', (요청, 응답) => {
     응답.sendFile(__dirname + '/index.html')
 })
 
@@ -82,6 +90,7 @@ app.post('/add', async (요청, 응답) => {
 app.get('/detail/:id', async (요청, 응답) => {
 
     try {
+        let result2 = await db.collection('comment').find({ parentId: new ObjectId(요청.params.id) }).toArray()
         let THISresult = await db.collection('post').findOne({
             _id: new ObjectId(요청.params.id)
         })
@@ -89,7 +98,7 @@ app.get('/detail/:id', async (요청, 응답) => {
         if (THISresult == null) {
             응답.status(400).send('이상한 url 입력함')
         } else {
-            응답.render('detail.ejs', { resultPUT: THISresult })
+            응답.render('detail.ejs', { resultPUT: THISresult, result2: result2 })
         }
     } catch (e) {
         console.log(e)
@@ -142,3 +151,36 @@ app.get('/list/:id', async (요청, 응답) => {//모든 컬렉션 출력
 
 //     응답.render('list.ejs', { 글목록: result }) //서버데이터를 ejs 파일에 넣으려면
 // })
+
+// app.get('/search', async (요청, 응답) => {
+//     // console.log(요청.query.val)
+//     let result = await db.collection('post')
+//         .find({ $text: { $search: 요청.query.val } }).
+//         toArray()
+//     응답.render('search.ejs', { 글목록: result })
+// })
+
+app.get('/search', async (요청, 응답) => {
+    let 검색조건 = [
+        {
+            $search: {
+                index: 'title_index',
+                text: { query: 요청.query.val, path: 'title' }
+            }
+        },
+    ]
+    let result = await db.collection('post').aggregate(검색조건).toArray()
+    응답.render('search.ejs', { 글목록: result })
+})
+
+app.post('/comment', async (요청, 응답) => {
+    await db.collection('comment').insertOne({
+        content: 요청.body.content,
+        // writerID: new ObjectId(요청.user._id),
+        // writer: 요청.user.username,
+        parentId: new ObjectId(요청.body.parentId)
+    })
+    응답.redirect('back')
+})
+
+app.use('/shop', require('./routes/shop.js'))

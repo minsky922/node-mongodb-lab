@@ -10,6 +10,15 @@
 
 <body class="grey-bg">
     <%- include('nav.ejs') %>
+
+        <input class="search">
+        <button class="search-send">검색</button>
+        <script>
+            document.querySelector('.search-send').addEventListener('click', function () {
+                let input = document.querySelector('.search').value
+                location.href = '/search?val=' + input
+            })
+        </script>
         <div class="white-bg">
             <% for (let i=0; i<글목록.length; i++){ %>
                 <div class="list-box">

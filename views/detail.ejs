@@ -19,6 +19,29 @@
                     <%= resultPUT.content %>
                 </p>
             </div>
+
+            <div class="detail-bg">
+                <h4>
+                    <%= resultPUT.title %>
+                </h4>
+                <p>
+                    <%= resultPUT.content %>
+                </p>
+                <hr style="margin-top: 60px">
+                <div>
+                    <p><strong>작성자</strong>
+                        <%= result2[0].content%> 댓글내용
+                    </p>
+                    <p><strong>작성자</strong>
+                        <%= result2[1].content%> 댓글내용
+                    </p>
+                </div>
+                <form action="/comment" method="POST">
+                    <input name="content">
+                    <input name="parentId" value="<%= resultPUT._id %>" style="display: none">
+                    <button type="submit">댓글작성</button>
+                </form>
+            </div>
 </body>
 
 </html>
