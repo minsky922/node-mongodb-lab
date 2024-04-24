@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="/main.css" rel="stylesheet">
+</head>
+
+<body class="grey-bg">
+    <%- include('nav.ejs') %>
+
+        <%= JSON.stringify(result) %>
+            <div class="detail-bg">
+                <div class="chat-screen">
+                    <div class="chat-box"><span>안녕</span></div>
+                    <div class="chat-box"><span>안녕</span></div>
+                    <div class="chat-box mine"><span>안녕</span></div>
+                </div>
+            </div>
+
+            <div class="chat-form">
+                <input class="chat-input">
+                <button class="chat-button">전송</button>
+            </div>
+            <script src="https://cdn.jsdelivr.net/npm/socket.io@4.7.2/client-dist/socket.io.min.js"></script>
+            <script>
+                const socket = io()
+                //1.채팅상세페이지 방문시 유저를 room에 넣기
+                socket.emit('ask-join', '<%= result._id %>') //서버에 룸 조인 요청
+
+
+                // 2. 전송버튼 누르면 같은 룸에 전달하라고 서버에 부탁
+                document.querySelector('.chat-button').addEventListener('click', function () {
+                    let 입력한거 = document.querySelector('.chat-input').value
+                    socket.emit('message-send', { msg: 입력한거, room: '<%= result._id %>' })
+                })
+                //4. 유저는 서버메세지 받으면 html로 보여주기
+                socket.on('message-broadcast', (data) => {
+                    // console.log(data)
+                    document.querySelector('.chat-screen')
+                        .insertAdjacentHTML('beforeend', `<div class="chat-box"><span>${data}</span></div>`)
+                }) 
+            </script>
+
+            <h4>채팅방임</h4>
+</body>
+
+</html>

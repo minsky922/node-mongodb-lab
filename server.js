@@ -5,6 +5,12 @@ const { MongoClient, ObjectId } = require('mongodb')
 const methodOverride = require('method-override')
 // const connectDB = require('./database.js')
 
+/* socket.io 설정 */
+const { createServer } = require('http')
+const { Server } = require('socket.io')
+const server = createServer(app)
+const io = new Server(server)
+
 require('dotenv').config()
 app.use(methodOverride('_method'))
 
@@ -22,7 +28,7 @@ let db;
 connectDB.then((client) => {
     console.log('DB연결성공')
     db = client.db('forum');
-    app.listen(process.env.PORT, () => {
+    server.listen(process.env.PORT, () => {
         console.log('http://localhost:8080 에서 서버 실행중')
     })
 }).catch((err) => {
@@ -182,5 +188,46 @@ app.post('/comment', async (요청, 응답) => {
     })
     응답.redirect('back')
 })
+
+app.get('/chat/request', async (요청, 응답) => {
+    await db.collection('chatroom').insertOne({
+        member: '익명',
+        date: new Date()
+    })
+    응답.render('/chat/list')
+})
+app.get('/chat/list', async (요청, 응답) => {
+    let result = await db.collection('chatroom').find().toArray({
+        member: '익명'
+    })
+    응답.render('chatList.ejs', { result: result })
+})
+app.get('/chat/detail/:id', async (요청, 응답) => {
+    let result = await db.collection('chatroom').findOne({ _id: new ObjectId(요청.params.id) })
+    응답.render('chatDetail.ejs', { result: result })
+})
+
+io.on('connection', (socket) => {
+    console.log('websocket 연결됨')
+
+    socket.on('age', (data) => {
+        console.log('유저가 보낸거', data)
+        io.emit('name', 'kim')
+    }) //유저가 웹소켓 연결시 서버에서 코드실행하려면
+
+    //1.채팅상세페이지 방문시 유저를 room에 넣기
+    socket.on('ask-join', (data) => {
+        socket.join(data)
+    })
+    // socket.join('룸이름')
+
+    //3.서버는 부탁받으면 다른 룸에 뿌려줌
+    socket.on('message-send', (data) => {
+        // console.log(data)
+        io.to(data.room).emit('message-broadcast', data.msg)
+    })
+})
+
+
 
 app.use('/shop', require('./routes/shop.js'))
